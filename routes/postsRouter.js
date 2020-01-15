@@ -1,11 +1,15 @@
-const router = require('express').Router();
+const express = require('express');
 
 const Database = require('../data/db');
 
 const router = express.Router();
 
+
+module.exports = router
+
+
 //Create post using information sent in request body
-server.post('/', (req, res) => {
+router.post('/', (req, res) => {
     const postData = req.body;
 
     if (!postData.title || !postData.contents)
@@ -19,7 +23,7 @@ server.post('/', (req, res) => {
 })
 
 //Create comment for the post using ID from the request body
-server.post('/:id/comments', (req, res) => {
+router.post('/:id/comments', (req, res) => {
     const commentData = req.body;
     const postId = commentData.post_id;
 
@@ -34,7 +38,7 @@ server.post('/:id/comments', (req, res) => {
         })
         .catch(err => console.log(err))
     
-    Database.insert(commentData)
+    Database.insertComment(commentData)
         .then(comment => res.status(201).json(comment))
         .catch(err => {
             console.log(err)
@@ -43,7 +47,7 @@ server.post('/:id/comments', (req, res) => {
 })
 
 //Get all posts
-server.get('/', (req, res) => {
+router.get('/', (req, res) => {
     Database.find()
         .then(posts => {
             console.log('Posts: ' + posts);
@@ -56,7 +60,7 @@ server.get('/', (req, res) => {
 })
 
 //Get specific post by ID
-server.get('/:id', (req, res) => {
+router.get('/:id', (req, res) => {
     const id = req.params.id;
 
     Database.findById(id)
@@ -74,16 +78,16 @@ server.get('/:id', (req, res) => {
         })
 })
 
-//Return array of comments associated with the post with the specified ID
-server.get('/:id/comments', (req, res) => {
-    const id = req.params.id;
+// //Return array of comments associated with the post with the specified ID
+router.get('/:id/comments', (req, res) => {
+    const id = req.body.post_id;
 
     Database.findById(id)
         .then(post => {
             if (!post) {
                 res.status(404).json({ message: "The post with the specified ID does not exist." })
             } else {
-            Database.find()
+            Database.findPostComments(id)
                 .then(comments => {
                     console.log("Comments: " + comments)
                     res.status(200).json(comments);
@@ -93,11 +97,11 @@ server.get('/:id/comments', (req, res) => {
                     res.status(500).json({ error: "The comments information could not be retrieved." })
                 })
             }
-    
+        })
 })
 
 //Delete post
-server.delete('/:id', (req, res) => {
+router.delete('/:id', (req, res) => {
     const id = req.params.id;
 
     Database.findById(id)
@@ -115,15 +119,16 @@ server.delete('/:id', (req, res) => {
                     res.status(500).json({ error: "The post could not be removed" })
                 })
             }
+    })
 })
 
 //Update post
-server.route('/:id', (req, res) => {
+router.put('/:id', (req, res) => {
     const id = req.params.id;
     const postData = req.body;
 
     if (!postData.title || !postData.contents)
-        res.status(400).json({ "Please provide title and contents for the post." })
+        res.status(400).json({ message: "Please provide title and contents for the post."})
 
     Database.findById(id)
     .then(post => {
@@ -137,8 +142,6 @@ server.route('/:id', (req, res) => {
         .then(update => res.status(200).json(update))
         .catch(err => {
             console.log(err);
-            res.status(500).json({ "The post information could not be modified." })
+            res.status(500).json({ message: "The post information could not be modified." })
         })
 })
-
-module.exports = router;
